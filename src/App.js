@@ -1,13 +1,40 @@
 import React from 'react'
 import { withAuthenticator } from 'aws-amplify-react'
+import { API, graphqlOperation } from 'aws-amplify'
+import { createNote } from './graphql/mutations'
+import { listNotes } from './graphql/queries'
 
 class App extends React.Component {
   state = {
-    notes: [{
-        id: 1,
-        note: 'Some random note'
-      }
-    ]
+    note: '',
+    notes: []
+  }
+
+  async componentDidMount() {
+    const res = await API.graphql(graphqlOperation(listNotes))
+    this.setState({
+      notes: res.data.listNotes.items
+    })
+  }
+
+  _handleNoteChange = (e) => {
+    this.setState({note: e.target.value})
+  }
+
+  _handleSubmit = async (e) => {
+    const { note } = this.state
+    e.preventDefault()
+
+    const input = { note }
+    const res = await API.graphql(graphqlOperation(createNote, { 
+      input 
+    }))
+
+    const newNote = res.data.createNote
+    this.setState({
+      notes: [...this.state.notes, newNote],
+      note: ''
+    })
   }
 
   _renderNotes = () => {
@@ -29,11 +56,13 @@ class App extends React.Component {
         <h1 className='code f2-l'>
           Note App
         </h1>
-        <form className='mb3'>
+        <form className='mb3' onSubmit={this._handleSubmit}>
           <input
             type='text'
             className='pa2 f4'
             placeholder='Enter your note'
+            onChange={this._handleNoteChange}
+            value={this.state.note}
           />
           <button
             className='pa2 f4 ml2' 
